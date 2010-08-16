@@ -61,6 +61,17 @@ jQuery.fn.tagInput = function(options) {
   if (typeof(options.boldify) == "undefined")
     options.boldify = true;
 
+  if (typeof(options.animate) == "undefined")
+    options.animate = true;
+
+  if (typeof(options.animate) != "function") {
+    options._animate = options.animate;
+    options.animate = function(show, el, cb) {
+      var func = (options._animate) ? (show ? 'fadeIn' : 'fadeOut') : (show ? 'show' : 'hide');
+      el[func](cb);
+    }
+  }
+
   if (typeof(options.sortBy) == "undefined")
     options.sortBy = "tag";
 
@@ -157,7 +168,7 @@ jQuery.fn.tagInput = function(options) {
       theDiv = $("#__tagInputDiv");
       theInput.val(refurbishTags(theInput.val()));
 
-      theDiv.fadeOut(200, function() {
+      options.animate(0, theDiv, function() {
         theDiv.remove();
       });
     };
@@ -190,7 +201,7 @@ jQuery.fn.tagInput = function(options) {
           break;
 
         case 27: //esc
-          theDiv.fadeOut(200);
+          options.animate(0, theDiv);
           break;
 
         default:
@@ -226,6 +237,7 @@ jQuery.fn.tagInput = function(options) {
 
     // --------------------------  TAG LINE CLICK --------------------------
     var tagInputClickRow = function(theRow) {
+ 
       var lastComma = theInput.val().lastIndexOf(options.tagSeparator);
       var sep= lastComma<=0? (""):(options.tagSeparator+ (options.tagSeparator==" "?"":" "));
       var newVal = (theInput.val().substr(0, lastComma) + sep + theRow.attr('id').replace('val-','')).trim();
@@ -267,7 +279,7 @@ jQuery.fn.tagInput = function(options) {
           }
         }
         if (theDiv.html()!=""){
-          theDiv.fadeIn();
+            options.animate(true, theDiv);
         }
 
         theDiv.find("div:first").addClass("tagInputSel");
@@ -287,7 +299,7 @@ jQuery.fn.tagInput = function(options) {
           $.getJSON(options.jsonUrl, data, fillingCallbak );
         }
       } else {
-        theDiv.fadeOut(200);
+          options.animate(false, theDiv);
       }
     };
 
@@ -330,7 +342,7 @@ jQuery.fn.tagInput = function(options) {
     var delayedSelectTagFromInput= function(){
       var element = $(this);
       $().stopTime("suggTagRefresh");
-      $().oneTime(400, "suggTagRefresh", function() {
+      $().oneTime(200, "suggTagRefresh", function() {
         selectSuggTagFromInput();
       });
 
