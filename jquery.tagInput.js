@@ -64,6 +64,29 @@ jQuery.fn.tagInput = function(options) {
   if (typeof(options.sortBy) == "undefined")
     options.sortBy = "tag";
 
+  if (typeof(options.sortBy) == "string") {
+    options._sortBy = options.sortBy;
+    options.sortBy = function(obj) { return obj[options._sortBy]; }
+  }
+
+  if (typeof(options.formatLine) == "undefined")
+    options.formatLine = function (i, obj, search, matches) {
+      var tag = obj.tag;
+      if (options.boldify && matches) {
+        tag = "<b>" + tag.substring(0, search.length) + "</b>" + tag.substring(search.length);
+      }
+
+      var line = $("<div/>");
+      line.append("<div class='tagInputLineTag'>" + tag + "</div>");
+      if (obj.freq)
+        line.append("<div class='tagInputLineFreq'>" + obj.freq + "</div>");
+      return line;
+    }
+
+  if (typeof(options.formatValue == "undefined"))
+    options.formatValue = function (obj, i) {
+      return obj.tag;
+    }
   // --------------------------  end default option values --------------------------
 
 
@@ -205,7 +228,7 @@ jQuery.fn.tagInput = function(options) {
     var tagInputClickRow = function(theRow) {
       var lastComma = theInput.val().lastIndexOf(options.tagSeparator);
       var sep= lastComma<=0? (""):(options.tagSeparator+ (options.tagSeparator==" "?"":" "));
-      var newVal = (theInput.val().substr(0, lastComma) + sep + theRow.find(".tagInputLineTag").text()).trim();
+      var newVal = (theInput.val().substr(0, lastComma) + sep + theRow.attr('id').replace('val-','')).trim();
       theInput.val(newVal);
       theDiv.hide();
       $().oneTime(200, function() {
@@ -223,38 +246,23 @@ jQuery.fn.tagInput = function(options) {
 
       // --------------------------  FILLING THE DIV --------------------------
       var fillingCallbak = function(tags) {
-        if (options.sortBy == "frequency") {
-          tags = tags.sort(function (a, b) {
-            if (a.freq < b.freq)
-              return 1;
-            if (a.freq > b.freq)
-              return -1;
-            return 0;
-          });
-
-        } else if (options.sortBy == "tag") {
-          tags = tags.sort(function (a, b) {
-            if (a.tag < b.tag)
-              return -1;
-            if (a.tag > b.tag)
-              return 1;
-            return 0;
-          });
-        }
+        tags = tags.sort(function (a, b) {
+          if (options.sortBy(a) < options.sortBy(b))
+            return 1;
+          if (options.sortBy(a) > options.sortBy(b))
+            return -1;
+          return 0;
+        });
 
         for (var i in tags) {
+          tags[i]._val = options.formatValue(tags[i], i);
           var el = tags[i];
-          var matches = el.tag.toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) == 0;
+          var matches = el._val.toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) == 0;
           if (!options.autoFilter || matches) {
-            var line = $("<div class='tagInputLine'></div>");
-            var tag = el.tag;
-            if (options.boldify && matches) {
-              tag = "<b>" + tag.substring(0, search.length) + "</b>" + tag.substring(search.length);
-            }
-
-            line.append("<div class='tagInputLineTag'>" + tag + "</div>");
-            if (el.freq)
-              line.append("<div class='tagInputLineFreq'>" + el.freq + "</div>");
+            var line = $(options.formatLine(i, el, search, matches));
+            if (!line.is('.tagInputLine'))
+              line = $("<div class='tagInputLine'></div>").append(line);
+            line.attr('id', 'val-' + el._val);
             theDiv.append(line);
           }
         }
